@@ -1,0 +1,62 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: api.Dockerfile
+    volumes:
+      - ./apps/api:/app
+    environment:
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    ports:
+      - 9000:9000
+  manager-pipeline:
+    build:
+      context: ./apps/api
+      dockerfile: pipeline.Dockerfile
+    volumes:
+      - ./apps/api:/app
+    environment:
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+  transcriber:
+    build:
+      context: ./apps/transcriber
+      dockerfile: transcriber.Dockerfile
+    volumes:
+      - ./apps/transcriber:/app
+    environment:
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 55G
+  aligner:
+    build:
+      context: ./apps/aligner
+      dockerfile: aligner.Dockerfile
+    volumes:
+      - ./apps/aligner:/app
+    environment:
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 55G

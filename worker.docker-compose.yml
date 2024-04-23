@@ -1,0 +1,41 @@
+version: '3.8'
+services:
+  transcriber:
+    build:
+      context: ./apps/transcriber
+      dockerfile: transcriber.Dockerfile
+    volumes:
+      - ./apps/transcriber:/app
+    environment:
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 55G
+    network_mode: host
+
+  aligner:
+    build:
+      context: ./apps/aligner
+      dockerfile: aligner.Dockerfile
+    volumes:
+      - ./apps/aligner:/app
+    environment:
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+        limits:
+          memory: 55G
+    network_mode: host
