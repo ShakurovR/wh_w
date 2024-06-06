@@ -42,21 +42,3 @@ services:
               capabilities: [gpu]
         limits:
           memory: 55G
-  aligner:
-    build:
-      context: ./apps/aligner
-      dockerfile: aligner.Dockerfile
-    volumes:
-      - ./apps/aligner:/app
-    environment:
-      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
-      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
-        limits:
-          memory: 55G

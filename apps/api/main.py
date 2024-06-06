@@ -28,7 +28,7 @@ def process_file(
 ) -> str:
     check_file(id=id, file=file, language=language)
     celery_app.send_task(
-        "process_file",
+        "process_file_stereo",
         kwargs={
             "id":id,
             "file":file, 

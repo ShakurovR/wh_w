@@ -1,5 +1,5 @@
 from fastapi import HTTPException, UploadFile, status
-from utils import load_audio_stereo
+from utils import load_audio
 import os
 
 def check_file(id: str, file: str, language: str) -> tuple:
@@ -12,8 +12,7 @@ def check_file(id: str, file: str, language: str) -> tuple:
            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="File is empty"
         )
     try:
-        load_audio_stereo(file, 0) # left
-        load_audio_stereo(file, 1) # right
+        load_audio(file) # left
     except Exception as E:
         raise HTTPException(
            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Exception while trying to load file, exception:{E}"

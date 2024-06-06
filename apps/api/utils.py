@@ -1,42 +1,43 @@
 import numpy as np
-import subprocess
-import re
-def load_audio_stereo(file: str, channel: int, sr: int = 16000):
+from dataclasses import dataclass
+import torchaudio
+import io
+
+def load_audio(file: str, channel: int = None, sr: int = 16000):
     # left = 0 / right = 1
     try:
-        # Launches a subprocess to decode audio while down-mixing and resampling as necessary.
-        # Requires the ffmpeg CLI to be installed.
-        cmd = [
-            "ffmpeg",
-            "-nostdin",
-            "-threads",
-            "0",
-            "-i",
-            file,
-            "-map_channel",
-            f"0.0.{channel}",
-            "-f",
-            "s16le",
-            "-ac",
-            "1",
-            "-acodec",
-            "pcm_s16le",
-            "-ar",
-            str(sr),
-            "-",
-        ]
-        out = subprocess.run(cmd, capture_output=True, check=True).stdout
-    except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Failed to load audio: {e.stderr.decode()}") from e
+        a_channels, sample_rate = torchaudio.load(file)
+        serialized_result = []
+        for a_ch in a_channels:
+            a_ch = torchaudio.functional.resample(a_ch, orig_freq=sample_rate, new_freq=sr)
+            memfile = io.BytesIO()
+            np.save(memfile, a_ch) 
+            serialized_result.append(memfile.getvalue())
+    except Exception as E:
+        raise Exception(f"Failed to load audio: {E}")
+    return serialized_result
 
-    return out
+@dataclass
+class MySegment:
+    start: float
+    end: float = None
+    text: str = ""
+    speaker: str = None
 
 
-def segments_to_sent(tr_result, mark=None):
-    for segment in tr_result["segments"]:
-        seg_offset = 0
-        durat = segment['end'] - segment["start"]
-        length = len(segment["text"])
-        for sent in re.split("\.|\?|\!",segment["text"]):
-            if sent: yield (sent, segment["start"] + seg_offset, segment["start"] + durat*(len(sent)/length) + seg_offset, mark)
-            seg_offset += durat*(len(sent)/length)
+def segments_to_sentences(multiple_segments, mark=None):
+    init_f = True
+    for segment in multiple_segments:
+        for word in segment[10]:
+            if(init_f):
+                init_f = False
+                buf_segment = MySegment(start=word[0], speaker=mark)
+            buf_segment.text += word[2]
+            if(word[2][-1] in (".","!","?","¿")):
+                buf_segment.end = word[1]
+                yield buf_segment
+                init_f = True
+        if not init_f:
+            buf_segment.end = word[1]
+            yield buf_segment
+            init_f = True
